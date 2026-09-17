@@ -19,16 +19,19 @@ namespace
 	using FnGetLanguage = decltype(&AMF_GetLanguage);
 	using FnOpenMenu = decltype(&AMF_OpenMenu);
 	using FnSetPageVisible = decltype(&AMF_SetPageVisible);
+	using FnRegisterPage = decltype(&AMF_RegisterPage);
 
 	FnGetVersionString g_getVersionString = nullptr;
 	FnGetLanguage      g_getLanguage = nullptr;
 	FnOpenMenu         g_openMenu = nullptr;
 	FnSetPageVisible   g_setPageVisible = nullptr;
+	FnRegisterPage     g_registerPage = nullptr;
 
 	bool g_pageRegistered = false;
 
-	// "<section>/<page>" - the framework turns this into one tab per mod.
-	constexpr const char* kPagePath = BEAUTIFUL_NAME "/Settings";
+	// Section shown in the framework's mod list, and the tab inside it.
+	constexpr const char* kSectionName = BEAUTIFUL_NAME;
+	constexpr const char* kPageName = "Settings";
 
 	template <class T>
 	T Resolve(HMODULE a_module, const char* a_name)
@@ -67,6 +70,7 @@ namespace Menu
 			g_getLanguage = Resolve<FnGetLanguage>(g_framework, "AMF_GetLanguage");
 			g_openMenu = Resolve<FnOpenMenu>(g_framework, "AMF_OpenMenu");
 			g_setPageVisible = Resolve<FnSetPageVisible>(g_framework, "AMF_SetPageVisible");
+			g_registerPage = Resolve<FnRegisterPage>(g_framework, "AMF_RegisterPage");
 		}
 
 		if (!FrameworkPresent()) {
@@ -77,9 +81,21 @@ namespace Menu
 			return true;
 		}
 
-		SKSEMenuFramework::AddSectionItem(kPagePath, &Menu::Render);
+		// Preferred: the framework's own C API. The stock SMF-compatible call below prepends an
+		// internal section key, so calling AddSectionItem without SetSection() first sends
+		// "/<mod>/<page>" and a framework reading the section as a name rejects it.
+		if (g_registerPage && g_registerPage(kSectionName, kPageName, &Menu::Render)) {
+			g_pageRegistered = true;
+			logger::info("menu page registered: {}/{} (native AMF, framework: {} {})",
+				kSectionName, kPageName, FrameworkName(), FrameworkVersion());
+			return true;
+		}
+
+		SKSEMenuFramework::SetSection(kSectionName);
+		SKSEMenuFramework::AddSectionItem(kPageName, &Menu::Render);
 		g_pageRegistered = true;
-		logger::info("menu page registered: {} (framework: {} {})", kPagePath, FrameworkName(), FrameworkVersion());
+		logger::info("menu page registered: {}/{} (SMF-compat, framework: {} {})",
+			kSectionName, kPageName, FrameworkName(), FrameworkVersion());
 		return true;
 	}
 

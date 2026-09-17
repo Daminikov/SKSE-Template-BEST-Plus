@@ -73,5 +73,3 @@ Deployed layout: `<SKYRIM_MODS_FOLDER>\<PRODUCT_NAME>\SKSE\Plugins\<PRODUCT_NAME
   `Data\PrismaUI\views\<PRODUCT_NAME>\index.html`, which is exactly what the build copies.
 - **Lib licence**: CommonLibSSE-NG v8 is GPL-3.0 **with the Modding Exception** (linking your own mod
   code is allowed and stays yours; NG itself stays GPL). The older CharmedBaryon checkout is MIT.
-- `S:\MO2 LD6` (profile `2.HD`) is **read-only** — never deploy there, never point `SKYRIM_MODS_FOLDER`
-  at it.
