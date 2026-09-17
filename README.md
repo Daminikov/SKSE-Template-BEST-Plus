@@ -69,6 +69,17 @@ Format is exactly Skyrim's: **UTF-16 LE with BOM, CRLF, one line per string, `$K
 `tools/make_translations.py` generates the files (edit the dict there, run the script) so nobody has to
 fight an editor's encoding. Adding a language = one more key in that script.
 
+Three helpers, all run from the template root:
+
+| Tool | What it does |
+|---|---|
+| `python tools/make_translations.py` | (re)writes the languages defined in the script |
+| `python tools/new_language.py german` | creates a new-language stub: every english key, english text, ready to translate |
+| `python tools/check_translations.py` | validates format (BOM/UTF-16/CRLF/TAB), missing & extra keys, empty values, untranslated count, smuggled `%` conversions; exit code 1 on problems |
+
+`translations/README.md` is the page a translator gets: what to change, what never to touch, how to
+test it in game.
+
 In code:
 
 ```cpp
