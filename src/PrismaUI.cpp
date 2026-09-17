@@ -1,6 +1,7 @@
 #include "PCH.h"
 
 #include "Configuration.h"
+#include "Localization.h"
 #include "PrismaUI.h"
 
 #include "vendor/PrismaUI_API.h"
@@ -15,7 +16,9 @@ namespace
 	{
 		logger::info("PrismaUI view ready (handle {})", a_view);
 		if (g_api && a_view) {
-			g_api->InteropCall(a_view, "updateStatus", "plugin connected");
+			// hand the loaded strings to the web view; it re-applies them on every language change
+			g_api->InteropCall(a_view, "applyTranslations", Loc::Json());
+			g_api->InteropCall(a_view, "updateStatus", Loc::Get("$MyPlugin_View_Connected"));
 		}
 	}
 

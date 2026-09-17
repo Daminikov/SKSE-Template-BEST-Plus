@@ -2,6 +2,7 @@
 
 #include "Configuration.h"
 #include "InputSink.h"
+#include "Localization.h"
 #include "Logger.h"
 #include "Menu.h"
 #include "PrismaUI.h"
@@ -14,6 +15,7 @@ namespace
 		case SKSE::MessagingInterface::kDataLoaded:
 		{
 			Config::Load();
+			Loc::Init();
 			Log::SetLevel(Config::Get().logDebug ? spdlog::level::debug : spdlog::level::info);
 
 			if (Config::Get().enableMenuPage) {

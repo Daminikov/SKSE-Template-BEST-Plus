@@ -11,7 +11,7 @@
 
         .panel {
             display: inline-block;
-            min-width: 320px;
+            min-width: 340px;
             padding: 14px 16px;
             color: #e8e2d4;
             background: rgba(18, 16, 14, 0.92);
@@ -49,27 +49,49 @@
 </head>
 <body>
     <div class="panel">
-        <h1>{{MOD}} — web view</h1>
+        <h1 data-i18n="$MyPlugin_View_Title">{{MOD}}</h1>
 
         <div class="row">
-            <input id="data-input" type="text" placeholder="type something for the plugin log..." />
-            <button onclick="sendInputData()">Send to plugin</button>
+            <input id="data-input" type="text" data-i18n-placeholder="$MyPlugin_View_Placeholder"
+                   placeholder="type something for the plugin log..." />
+            <button data-i18n="$MyPlugin_View_Send" onclick="sendInputData()">Send to plugin</button>
         </div>
 
         <div id="result"></div>
-        <div id="status">waiting for the plugin...</div>
+        <div id="status" data-i18n="$MyPlugin_View_Waiting">waiting for the plugin...</div>
     </div>
 
     <script>
-        // Called from C++ (Prisma::Interop / InteropCall) with a string argument.
+        // C++ pushes the whole translation table here on view-ready and on every language
+        // change: InteropCall(view, "applyTranslations", Loc::Json()).
+        // Keys look like "$MyPlugin_View_Send"; anything carrying [data-i18n] is filled in.
+        window.applyTranslations = (json) => {
+            let strings = {};
+            try {
+                strings = JSON.parse(json);
+            } catch (e) {
+                console.error('applyTranslations: bad JSON', e);
+                return;
+            }
+
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                const key = element.getAttribute('data-i18n');
+                if (strings[key]) element.textContent = strings[key];
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
+                const key = element.getAttribute('data-i18n-placeholder');
+                if (strings[key]) element.setAttribute('placeholder', strings[key]);
+            });
+        };
+
+        // Called from C++ (Prisma::Interop / InteropCall) with a plain string.
         window.updateStatus = (data) => {
             document.querySelector('#status').textContent = data;
         };
 
-        // Same, but the plugin asks for a value back through the JSCallback of Invoke().
         function sendInputData() {
             const value = document.querySelector('#data-input').value;
-            document.querySelector('#result').textContent = 'sent: ' + value;
+            document.querySelector('#result').textContent = value;
 
             // The name must match RegisterJSListener(view, "sendDataToSKSE", ...) in PrismaUI.cpp
             window.sendDataToSKSE(value);

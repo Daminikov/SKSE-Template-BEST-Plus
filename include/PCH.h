@@ -11,6 +11,8 @@
 #include <chrono>
 #include <compare>
 #include <cstdint>
+#include <cstdio>
+#include <cstring>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -19,6 +21,7 @@
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 

@@ -14,6 +14,7 @@ manager on every successful build.
 | PCH (**required**) | `include/PCH.h` | NG v8's generated TU has no std includes — see *Pitfalls* |
 | Logger | `include/Logger.h`, `src/Logger.cpp` | `SKSE\<PRODUCT_NAME>.log` via spdlog, level switchable at runtime |
 | Config | `include/Configuration.h`, `src/Configuration.cpp` | `Data\SKSE\Plugins\<PRODUCT_NAME>.ini`, created on first run |
+| Translations | `include/Localization.h`, `src/Localization.cpp`, `translations/*.txt`, `tools/make_translations.py` | Skyrim's own `Interface\Translations\<PRODUCT_NAME>_<language>.txt` format, live language switch |
 | Menu page | `include/Menu.h`, `src/Menu.cpp` | AMF-native probes + the public SMF consumer header for widgets |
 | Web view | `include/PrismaUI.h`, `src/PrismaUI.cpp`, `view/index.html` | soft dependency: no PrismaUI → plugin still works |
 | Hotkey | `include/InputSink.h`, `src/InputSink.cpp` | SKSE input sink, toggles the view (default scan code `0x3D` = F3) |
@@ -55,6 +56,35 @@ Deployed layout: `<SKYRIM_MODS_FOLDER>\<PRODUCT_NAME>\SKSE\Plugins\<PRODUCT_NAME
    the SKSE version, the resolved menu framework and the PrismaUI view handle.
 3. AMF: the page shows up under the mod's name in the framework menu (default `F1`).
 4. PrismaUI: the hotkey (default F3) focuses the web view; the button in the view writes to the log.
+
+## Translations (every mod gets them from day one)
+
+`translations/<language>.txt` in the repo becomes `<mod>\Interface\Translations\<PRODUCT_NAME>_<language>.txt`
+in the deployed mod — that is Skyrim's own interface-translation location, the one the menu framework
+uses for its strings, and the one it scans to build its font atlas: characters from every
+`<anything>_<language>.txt` land in the atlas for that language, so Cyrillic / kana / hangul / hanzi
+need no font work of your own.
+
+Format is exactly Skyrim's: **UTF-16 LE with BOM, CRLF, one line per string, `$Key<TAB>text`**.
+`tools/make_translations.py` generates the files (edit the dict there, run the script) so nobody has to
+fight an editor's encoding. Adding a language = one more key in that script.
+
+In code:
+
+```cpp
+Loc::Init();                                   // once, on kDataLoaded (after Config::Load)
+ImGuiMCP::Text("%s", Loc::Get("$MyPlugin_Settings_DebugLogging"));
+Loc::Refresh();                                // cheap; returns true when the player switched language
+Prisma::Interop("applyTranslations", Loc::Json());   // push the table into the PrismaUI view
+```
+
+- The active language comes from the framework (`AMF_GetLanguage()`); without a framework it is `english`.
+- `english` is always loaded as a fallback, so a half-finished translation still shows text, and
+  `Loc::Get` logs every key it could not resolve (grep the log for `localization: missing key`).
+- In the web view every element carries `data-i18n="$Key"` (or `data-i18n-placeholder`), and
+  `window.applyTranslations(json)` fills them in — including on a live language switch.
+- Never pass a translated string as a *format* string to the framework's variadic text calls: keep the
+  format literal and pass `Loc::Get(...)` as an argument.
 
 ## Pitfalls (learned the hard way)
 

@@ -91,6 +91,18 @@ if(PLUGIN_AUTO_DEPLOY AND DEFINED ENV{SKYRIM_MODS_FOLDER})
                     "$<TARGET_PDB_FILE:${PROJECT_NAME}>" "${MOD_DIR}/SKSE/Plugins/$<TARGET_PDB_FILE_NAME:${PROJECT_NAME}>"
             VERBATIM)
     endif()
+
+    # translations/*.txt -> <mod>/Interface/Translations/<PRODUCT_NAME>_<language>.txt
+    # (Skyrim's own interface-translation format: UTF-16 LE, "$Key<TAB>text")
+    file(GLOB TRANSLATION_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/translations/*.txt")
+    foreach(TRANSLATION_FILE IN LISTS TRANSLATION_FILES)
+        get_filename_component(LANGUAGE "${TRANSLATION_FILE}" NAME_WE)
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${MOD_DIR}/Interface/Translations"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${TRANSLATION_FILE}" "${MOD_DIR}/Interface/Translations/${PRODUCT_NAME}_${LANGUAGE}.txt"
+            VERBATIM)
+    endforeach()
 elseif(PLUGIN_AUTO_DEPLOY)
     message(STATUS "Deploy skipped: SKYRIM_MODS_FOLDER is not set")
 endif()

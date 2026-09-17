@@ -5,8 +5,10 @@
 #include <cstdio>
 
 #include "Configuration.h"
+#include "Localization.h"
 #include "Logger.h"
 #include "Menu.h"
+#include "PrismaUI.h"
 
 #include "vendor/AMF/API.h"
 #include "vendor/MenuFramework/SKSEMenuFramework.h"
@@ -101,29 +103,36 @@ namespace Menu
 
 	void Render()
 	{
+		// the framework's language can change while the game runs - reload when it does
+		if (Loc::Refresh()) {
+			Prisma::Interop("applyTranslations", Loc::Json());
+		}
+
 		auto& settings = Config::Get();
 
 		ImGuiMCP::Text("%s %s", BEAUTIFUL_NAME, MOD_VERSION);
-		ImGuiMCP::TextDisabled("menu: %s %s", FrameworkName(), FrameworkVersion());
+		ImGuiMCP::TextDisabled("%s: %s %s", Loc::Get("$MyPlugin_Settings_Framework"), FrameworkName(), FrameworkVersion());
 		ImGuiMCP::Separator();
 
-		if (ImGuiMCP::Checkbox("Enable PrismaUI web view", &settings.enablePrismaUI)) {
+		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Settings_EnablePrismaUI"), &settings.enablePrismaUI)) {
 			Config::Save();
 		}
-		if (ImGuiMCP::Checkbox("Register this page", &settings.enableMenuPage)) {
+		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Settings_RegisterPage"), &settings.enableMenuPage)) {
 			Config::Save();
 		}
-		if (ImGuiMCP::Checkbox("Debug logging", &settings.logDebug)) {
+		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Settings_DebugLogging"), &settings.logDebug)) {
 			Log::SetLevel(settings.logDebug ? spdlog::level::debug : spdlog::level::info);
 			Config::Save();
 		}
-		if (ImGuiMCP::SliderFloat("Example slider", &settings.exampleSlider, 0.0f, 1.0f)) {
+		if (ImGuiMCP::SliderFloat(Loc::Get("$MyPlugin_Settings_ExampleSlider"), &settings.exampleSlider, 0.0f, 1.0f)) {
 			Config::Save();
 		}
 
 		ImGuiMCP::Separator();
-		ImGuiMCP::TextDisabled("Hotkey toggles the web view (scan code 0x%02X, default F3).", settings.toggleKeyScanCode);
-		ImGuiMCP::TextDisabled("UI language reported by the framework: %s", Language());
+		ImGuiMCP::TextDisabled("%s: %s", Loc::Get("$MyPlugin_Settings_Language"), Loc::Language());
+		// the translated string is an ARGUMENT here, never the format string: a translation must
+		// not be able to smuggle a printf conversion into the framework's variadic text call
+		ImGuiMCP::TextDisabled("%s: 0x%02X", Loc::Get("$MyPlugin_Settings_HotkeyHint"), settings.toggleKeyScanCode);
 	}
 
 	const char* FrameworkName()
