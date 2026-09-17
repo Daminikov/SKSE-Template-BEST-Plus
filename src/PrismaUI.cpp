@@ -133,7 +133,14 @@ namespace Prisma
 		// also what captures the mouse (EnableInputCapture + the framework's FocusMenu).
 		g_api->Show(g_view);
 		const bool pause = Config::Get().pauseGameOnFocus;
-		const bool focused = g_api->Focus(g_view, pause);
+
+		// The third argument must be passed EXPLICITLY. PrismaUI's Focus() is
+		// Focus(view, pauseGame, disableFocusMenu) - the third parameter was added in PrismaUI 1.2,
+		// and a plugin built against an older header that passes only two arguments leaves garbage
+		// in that register. A truthy value switches the FocusMenu overlay off, and the overlay is
+		// what draws and drives the cursor in game: the UI then works in the main menu (the game's
+		// own cursor) and is dead in the world (no cursor at all).
+		const bool focused = g_api->Focus(g_view, pause, /*disableFocusMenu=*/false);
 		logger::debug("PrismaUI view shown (focus granted: {}, game paused: {})", focused, pause);
 		SyncOptions();
 		return focused;
