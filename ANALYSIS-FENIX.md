@@ -26,7 +26,7 @@
 
 | В шаблоне | Из оригинала | Что изменено |
 |---|---|---|
-| `include/engine/Call.h` | `_generic_foo_`, `add_trampoline`, `writebytes` | переименовано в `Engine::Call/Static/Hook/WriteBytes`, добавлена `Engine::HasOffset()` для проверки, что ID есть в versionlib текущего рантайма |
+| `include/engine/Call.h` | `_generic_foo_`, `add_trampoline`, `writebytes` | переименовано в `Engine::Call/Static/Hook/WriteBytes`. Проверку `HasOffset()` из первой версии пришлось убрать: `REL::ID(id).offset()` на неизвестном ID не возвращает 0, а валит игру через `stl::report_and_fail()` — «прощупать» ID в рантайме невозможно |
 | `include/engine/Format.h` | `fmt::formatter<...>`, `hash`/`_h`/`_hl` | реализации перенесены в заголовок (у оригинала — в .cpp), убраны зависимости от их cpp |
 | `include/engine/Math.h` | `clamp/clamp01/lerp`, `angles2dir`, `rotate`, `GetHeadingAngle` | оставлена только чистая математика: `GetHeadingAngle` переписан без вызовов движка (через `NiFastATan2`), `Rotate` поправлен на нормализацию оси (в оригинале `UnitCross` самого на себя) |
 | `include/engine/Forms.h` | `Json::get_formid`, `get_mod_index` | переписано на `TESDataHandler::LookupModByName` + `TESFile::GetPartialIndex()` (корректно для ESL/`0xFE`-индексов), parse через `std::optional` |
@@ -54,15 +54,18 @@
 ## Важное предупреждение про `REL::ID`
 
 Все вызовы движка идут через Address Library, то есть ID резолвится по `versionlib-1-7-104-0.bin`
-работающей игры. ID, которых в текущем versionlib нет, превращаются в мусорный адрес — падение без
-внятного стектрейса. Поэтому в `Call.h` есть `Engine::HasOffset(id)`:
+работающей игры. И тут важная деталь, которую надо знать до первой попытки: **отсутствующий ID нельзя
+«прощупать»** — `REL::ID(id).offset()` в этом случае вызывает `stl::report_and_fail()`, то есть валит
+игру окном «Failed to find the id within the address library: NNN» (никакого возврата нуля нет).
+Поэтому:
 
-```cpp
-if (!Engine::HasOffset(36444)) { logger::error("ID 36444 unavailable on this runtime"); return; }
-```
+1. ID берём только из источника, проверенного на нашем рантайме (исходник другого мода, дампы,
+   просмотрщик versionlib); код под 1.6.x для 1.7.104 — лотерея.
+2. Каждый ID-вызов живёт за флагом в конфиге, чтобы отключать без пересборки.
+3. Если игра упала с этим окном — число в окне и есть виновник.
+4. Обёртка CommonLibSSE-NG всегда предпочтительнее сырого ID.
 
-Код оригинала писался под рантаймы 1.6.x; перед первым использованием любого ID из него — проверять
-наличие в versionlib и тестить на живой игре.
+Подробности и примеры — в `docs/ENGINE-BASE.md`.
 
 ## Лицензия
 

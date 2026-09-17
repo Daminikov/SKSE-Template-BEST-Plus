@@ -14,7 +14,7 @@ manager on every successful build.
 | PCH (**required**) | `include/PCH.h` | NG v8's generated TU has no std includes — see *Pitfalls* |
 | Logger | `include/Logger.h`, `src/Logger.cpp` | `SKSE\<PRODUCT_NAME>.log` via spdlog, level switchable at runtime |
 | Config | `include/Configuration.h`, `src/Configuration.cpp`, `include/Settings.h` | `Data\SKSE\Plugins\<PRODUCT_NAME>.ini` через SimpleIni (секции, комментарии, UTF-8), хоткей строкой `61` / `42+61` |
-| Engine base | `include/engine/` | из UselessFenixUtils: `Call.h` (вызов движка по Address Library ID, `HasOffset`, `WriteBytes`, `Hook`), `Format.h` (fmt для кватернионов/Havok + `_h`/`_hl` хэши), `Math.h` (clamp/lerp/углы/`HeadingAngle`), `Forms.h` (`Plugin.esp\|0x123` → форма) — разбор в `ANALYSIS-FENIX.md` |
+| Engine base | `include/engine/` | из UselessFenixUtils: `Call.h` (вызов движка по Address Library ID, `WriteBytes`, xbyak-хук), `Format.h` (fmt для кватернионов/Havok + `_h`/`_hl` хэши), `Math.h` (clamp/lerp/углы/`HeadingAngle`), `Forms.h` (`Plugin.esp\|0x123` → форма). Практическое руководство — `docs/ENGINE-BASE.md`, разбор отбора — `ANALYSIS-FENIX.md` |
 | Translations | `include/Localization.h`, `src/Localization.cpp`, `translations/*.txt`, `tools/make_translations.py` | Skyrim's own `Interface\Translations\<PRODUCT_NAME>_<language>.txt` format, live language switch |
 | Menu page | `include/Menu.h`, `src/Menu.cpp` | AMF-native probes + the public SMF consumer header for widgets |
 | Web view | `include/PrismaUI.h`, `src/PrismaUI.cpp`, `view/index.html` | soft dependency: no PrismaUI → plugin still works; test window with options (`window.setOption` → INI → `window.applyOptions`) |
