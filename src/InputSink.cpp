@@ -3,9 +3,50 @@
 #include "Configuration.h"
 #include "InputSink.h"
 #include "PrismaUI.h"
+#include "Settings.h"
 
 namespace
 {
+	// Modifier state is tracked from the event stream - never polled off the keyboard device.
+	// RE::BSInputDeviceManager::GetKeyboard() returns a device class whose base virtuals live in
+	// the game, not in CommonLibSSE-NG's static library: touching it breaks the link with
+	// "unresolved external symbol RE::BSInputDevice::..." errors.
+	struct HeldModifiers
+	{
+		bool shift = false;
+		bool ctrl = false;
+		bool alt = false;
+
+		void Update(std::uint32_t a_scanCode, bool a_down)
+		{
+			using Key = RE::BSKeyboardDevice::Keys::Key;
+
+			switch (a_scanCode) {
+			case Key::kLeftShift:
+			case Key::kRightShift:
+				shift = a_down;
+				break;
+			case Key::kLeftControl:
+			case Key::kRightControl:
+				ctrl = a_down;
+				break;
+			case Key::kLeftAlt:
+			case Key::kRightAlt:
+				alt = a_down;
+				break;
+			default:
+				break;
+			}
+		}
+
+		[[nodiscard]] bool Satisfies(const Settings::Hotkey& a_hotkey) const
+		{
+			return (a_hotkey.shift == 0 || shift) &&
+			       (a_hotkey.ctrl == 0 || ctrl) &&
+			       (a_hotkey.alt == 0 || alt);
+		}
+	};
+
 	class ToggleKeySink final : public RE::BSTEventSink<RE::InputEvent*>
 	{
 	public:
@@ -15,7 +56,7 @@ namespace
 				return RE::BSEventNotifyControl::kContinue;
 			}
 
-			const auto toggleKey = static_cast<std::uint32_t>(Config::Get().toggleKeyScanCode);
+			const Settings::Hotkey hotkey = Settings::ParseHotkey(Config::Get().toggleKey);
 			for (auto* event = *a_event; event; event = event->next) {
 				if (event->GetEventType() != RE::INPUT_EVENT_TYPE::kButton) {
 					continue;
@@ -25,7 +66,13 @@ namespace
 				if (button->GetDevice() != RE::INPUT_DEVICE::kKeyboard) {
 					continue;
 				}
-				if (button->GetIDCode() != toggleKey || !button->IsDown()) {
+
+				const auto scanCode = button->GetIDCode();
+				const bool down = button->IsDown();
+
+				_held.Update(scanCode, down);
+
+				if (scanCode != hotkey.key || !down || !_held.Satisfies(hotkey)) {
 					continue;
 				}
 
@@ -38,6 +85,9 @@ namespace
 			}
 			return RE::BSEventNotifyControl::kContinue;
 		}
+
+	private:
+		HeldModifiers _held;
 	};
 
 	ToggleKeySink g_sink;
@@ -58,6 +108,9 @@ namespace InputSink
 		}
 		manager->AddEventSink(&g_sink);
 		g_installed = true;
-		logger::info("input sink installed (toggle scan code 0x{:02X})", Config::Get().toggleKeyScanCode);
+
+		const auto hotkey = Settings::ParseHotkey(Config::Get().toggleKey);
+		logger::info("input sink installed (toggle key '{}' -> scan code 0x{:02X}, shift {}, ctrl {}, alt {})",
+			Config::Get().toggleKey, hotkey.key, hotkey.shift, hotkey.ctrl, hotkey.alt);
 	}
 }

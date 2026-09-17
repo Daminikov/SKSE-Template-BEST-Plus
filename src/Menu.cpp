@@ -132,7 +132,8 @@ namespace Menu
 		ImGuiMCP::TextDisabled("%s: %s", Loc::Get("$MyPlugin_Menu_Language"), Loc::Language());
 		// the translated string is an ARGUMENT here, never the format string: a translation must
 		// not be able to smuggle a printf conversion into the framework's variadic text call
-		ImGuiMCP::TextDisabled("%s: 0x%02X", Loc::Get("$MyPlugin_Menu_HotkeyHint"), settings.toggleKeyScanCode);
+		ImGuiMCP::TextDisabled("%s: %s (0x%02X)", Loc::Get("$MyPlugin_Menu_HotkeyHint"),
+			settings.toggleKey.c_str(), Settings::ParseHotkey(settings.toggleKey).key);
 	}
 
 	const char* FrameworkName()

@@ -35,3 +35,11 @@
 
 namespace logger = SKSE::log;
 using namespace std::literals;
+
+// Project-wide helpers (small, header-only): engine call/format/math/form utilities and the
+// SimpleIni-backed settings reader. engine/Call.h stays out of the PCH - it pulls xbyak when
+// that is available.
+#include "Settings.h"
+#include "engine/Format.h"
+#include "engine/Forms.h"
+#include "engine/Math.h"

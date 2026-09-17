@@ -1,10 +1,10 @@
 #include "PCH.h"
 
-#include <Windows.h>
-
 #include <cstdio>
+#include <optional>
 
 #include "Configuration.h"
+#include "Settings.h"
 
 namespace
 {
@@ -12,22 +12,22 @@ namespace
 	constexpr const char* kSection = "General";
 
 	Config::Settings g_settings;
+	Settings::Ini    g_ini;
 
-	int ReadInt(const char* a_key, int a_default)
-	{
-		return static_cast<int>(::GetPrivateProfileIntA(kSection, a_key, a_default, kIniPath));
-	}
+	// Values live in the INI as percentages - easier for a human to edit than 0.42.
+	constexpr const char* kMenuPage = "bEnableMenuPage";
+	constexpr const char* kPrismaUI = "bEnablePrismaUI";
+	constexpr const char* kToggleKey = "sToggleKey";
+	constexpr const char* kLogDebug = "bLogDebug";
+	constexpr const char* kSlider = "iExampleSliderPercent";
+	constexpr const char* kHud = "bShowHudElement";
+	constexpr const char* kSound = "bEnableSound";
+	constexpr const char* kVolume = "iVolumePercent";
 
-	bool ReadBool(const char* a_key, bool a_default)
+	template <class T>
+	T Or(const std::optional<T>& a_value, T a_default)
 	{
-		return ReadInt(a_key, a_default ? 1 : 0) != 0;
-	}
-
-	void WriteInt(const char* a_key, int a_value)
-	{
-		char buffer[32]{};
-		std::snprintf(buffer, sizeof(buffer), "%d", a_value);
-		::WritePrivateProfileStringA(kSection, a_key, buffer, kIniPath);
+		return a_value.value_or(a_default);
 	}
 }
 
@@ -35,41 +35,75 @@ namespace Config
 {
 	void Load()
 	{
-		std::error_code ec;
-		const bool        exists = std::filesystem::exists(kIniPath, ec);
-
-		g_settings.enableMenuPage = ReadBool("bEnableMenuPage", true);
-		g_settings.enablePrismaUI = ReadBool("bEnablePrismaUI", true);
-		g_settings.toggleKeyScanCode = ReadInt("iToggleKeyScanCode", 0x3D);
-		g_settings.logDebug = ReadBool("bLogDebug", false);
-
-		// floats live in the INI as percentages - easier for a human to edit
-		g_settings.exampleSlider = static_cast<float>(ReadInt("iExampleSliderPercent", 50)) / 100.0f;
-
-		g_settings.showHudElement = ReadBool("bShowHudElement", true);
-		g_settings.enableSound = ReadBool("bEnableSound", false);
-		g_settings.volume = static_cast<float>(ReadInt("iVolumePercent", 50)) / 100.0f;
+		const bool exists = std::filesystem::exists(kIniPath);
 
 		if (!exists) {
 			Save();
 			logger::info("configuration created: {}", kIniPath);
-		} else {
-			logger::info("configuration loaded: {} (menu {}, prismaUI {}, hud {}, sound {}, volume {:.2f})",
-				kIniPath, g_settings.enableMenuPage, g_settings.enablePrismaUI,
-				g_settings.showHudElement, g_settings.enableSound, g_settings.volume);
+			return;
 		}
+
+		if (!g_ini.Load(kIniPath)) {
+			logger::error("configuration: cannot read {}, using defaults", kIniPath);
+			return;
+		}
+
+		bool value{};
+
+		if (g_ini.GetBool(kSection, kMenuPage, value)) {
+			g_settings.enableMenuPage = value;
+		}
+		if (g_ini.GetBool(kSection, kPrismaUI, value)) {
+			g_settings.enablePrismaUI = value;
+		}
+		if (g_ini.GetBool(kSection, kLogDebug, value)) {
+			g_settings.logDebug = value;
+		}
+		if (g_ini.GetBool(kSection, kHud, value)) {
+			g_settings.showHudElement = value;
+		}
+		if (g_ini.GetBool(kSection, kSound, value)) {
+			g_settings.enableSound = value;
+		}
+
+		std::string text;
+		if (g_ini.GetString(kSection, kToggleKey, text)) {
+			g_settings.toggleKey = text;
+		} else if (std::int32_t legacy{}; g_ini.GetInt(kSection, "iToggleKeyScanCode", legacy)) {
+			// pre-SimpleIni installs stored the code as a number - keep them working
+			g_settings.toggleKey = std::to_string(legacy);
+		}
+
+		std::int32_t number{};
+		if (g_ini.GetInt(kSection, kSlider, number)) {
+			g_settings.exampleSlider = static_cast<float>(number) / 100.0f;
+		}
+		if (g_ini.GetInt(kSection, kVolume, number)) {
+			g_settings.volume = static_cast<float>(number) / 100.0f;
+		}
+
+		logger::info("configuration loaded: {} (menu {}, prismaUI {}, key '{}', hud {}, sound {}, volume {:.2f})",
+			kIniPath, g_settings.enableMenuPage, g_settings.enablePrismaUI, g_settings.toggleKey,
+			g_settings.showHudElement, g_settings.enableSound, g_settings.volume);
 	}
 
 	void Save()
 	{
-		WriteInt("bEnableMenuPage", g_settings.enableMenuPage ? 1 : 0);
-		WriteInt("bEnablePrismaUI", g_settings.enablePrismaUI ? 1 : 0);
-		WriteInt("iToggleKeyScanCode", g_settings.toggleKeyScanCode);
-		WriteInt("bLogDebug", g_settings.logDebug ? 1 : 0);
-		WriteInt("iExampleSliderPercent", static_cast<int>(g_settings.exampleSlider * 100.0f));
-		WriteInt("bShowHudElement", g_settings.showHudElement ? 1 : 0);
-		WriteInt("bEnableSound", g_settings.enableSound ? 1 : 0);
-		WriteInt("iVolumePercent", static_cast<int>(g_settings.volume * 100.0f));
+		g_ini.SetSectionComment(kSection, "; " PRODUCT_NAME " settings - rewritten by the plugin when a value changes");
+
+		g_ini.SetBool(kSection, kMenuPage, g_settings.enableMenuPage);
+		g_ini.SetBool(kSection, kPrismaUI, g_settings.enablePrismaUI);
+		g_ini.SetString(kSection, kToggleKey, g_settings.toggleKey.c_str(),
+			"; DirectInput scan codes joined with '+', e.g. 61 = F3, 42+61 = Shift+F3");
+		g_ini.SetBool(kSection, kLogDebug, g_settings.logDebug);
+		g_ini.SetInt(kSection, kSlider, static_cast<std::int32_t>(g_settings.exampleSlider * 100.0f));
+		g_ini.SetBool(kSection, kHud, g_settings.showHudElement);
+		g_ini.SetBool(kSection, kSound, g_settings.enableSound);
+		g_ini.SetInt(kSection, kVolume, static_cast<std::int32_t>(g_settings.volume * 100.0f));
+
+		if (!g_ini.Save()) {
+			logger::error("configuration: cannot write {}", kIniPath);
+		}
 	}
 
 	Settings& Get()
