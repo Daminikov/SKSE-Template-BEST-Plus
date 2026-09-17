@@ -43,16 +43,20 @@ namespace Config
 		g_settings.toggleKeyScanCode = ReadInt("iToggleKeyScanCode", 0x3D);
 		g_settings.logDebug = ReadBool("bLogDebug", false);
 
-		// floats are stored as text; keep the demo value in a sane range
-		const auto slider = ReadInt("iExampleSliderPercent", 50);
-		g_settings.exampleSlider = static_cast<float>(slider) / 100.0f;
+		// floats live in the INI as percentages - easier for a human to edit
+		g_settings.exampleSlider = static_cast<float>(ReadInt("iExampleSliderPercent", 50)) / 100.0f;
+
+		g_settings.showHudElement = ReadBool("bShowHudElement", true);
+		g_settings.enableSound = ReadBool("bEnableSound", false);
+		g_settings.volume = static_cast<float>(ReadInt("iVolumePercent", 50)) / 100.0f;
 
 		if (!exists) {
 			Save();
 			logger::info("configuration created: {}", kIniPath);
 		} else {
-			logger::info("configuration loaded: {} (menu {}, prismaUI {})", kIniPath,
-				g_settings.enableMenuPage, g_settings.enablePrismaUI);
+			logger::info("configuration loaded: {} (menu {}, prismaUI {}, hud {}, sound {}, volume {:.2f})",
+				kIniPath, g_settings.enableMenuPage, g_settings.enablePrismaUI,
+				g_settings.showHudElement, g_settings.enableSound, g_settings.volume);
 		}
 	}
 
@@ -63,6 +67,9 @@ namespace Config
 		WriteInt("iToggleKeyScanCode", g_settings.toggleKeyScanCode);
 		WriteInt("bLogDebug", g_settings.logDebug ? 1 : 0);
 		WriteInt("iExampleSliderPercent", static_cast<int>(g_settings.exampleSlider * 100.0f));
+		WriteInt("bShowHudElement", g_settings.showHudElement ? 1 : 0);
+		WriteInt("bEnableSound", g_settings.enableSound ? 1 : 0);
+		WriteInt("iVolumePercent", static_cast<int>(g_settings.volume * 100.0f));
 	}
 
 	Settings& Get()

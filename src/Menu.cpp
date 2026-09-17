@@ -111,28 +111,28 @@ namespace Menu
 		auto& settings = Config::Get();
 
 		ImGuiMCP::Text("%s %s", BEAUTIFUL_NAME, MOD_VERSION);
-		ImGuiMCP::TextDisabled("%s: %s %s", Loc::Get("$MyPlugin_Settings_Framework"), FrameworkName(), FrameworkVersion());
+		ImGuiMCP::TextDisabled("%s: %s %s", Loc::Get("$MyPlugin_Menu_Framework"), FrameworkName(), FrameworkVersion());
 		ImGuiMCP::Separator();
 
-		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Settings_EnablePrismaUI"), &settings.enablePrismaUI)) {
+		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Menu_EnablePrismaUI"), &settings.enablePrismaUI)) {
 			Config::Save();
 		}
-		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Settings_RegisterPage"), &settings.enableMenuPage)) {
+		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Menu_RegisterPage"), &settings.enableMenuPage)) {
 			Config::Save();
 		}
-		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Settings_DebugLogging"), &settings.logDebug)) {
+		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Menu_DebugLogging"), &settings.logDebug)) {
 			Log::SetLevel(settings.logDebug ? spdlog::level::debug : spdlog::level::info);
 			Config::Save();
 		}
-		if (ImGuiMCP::SliderFloat(Loc::Get("$MyPlugin_Settings_ExampleSlider"), &settings.exampleSlider, 0.0f, 1.0f)) {
+		if (ImGuiMCP::SliderFloat(Loc::Get("$MyPlugin_Menu_ExampleSlider"), &settings.exampleSlider, 0.0f, 1.0f)) {
 			Config::Save();
 		}
 
 		ImGuiMCP::Separator();
-		ImGuiMCP::TextDisabled("%s: %s", Loc::Get("$MyPlugin_Settings_Language"), Loc::Language());
+		ImGuiMCP::TextDisabled("%s: %s", Loc::Get("$MyPlugin_Menu_Language"), Loc::Language());
 		// the translated string is an ARGUMENT here, never the format string: a translation must
 		// not be able to smuggle a printf conversion into the framework's variadic text call
-		ImGuiMCP::TextDisabled("%s: 0x%02X", Loc::Get("$MyPlugin_Settings_HotkeyHint"), settings.toggleKeyScanCode);
+		ImGuiMCP::TextDisabled("%s: 0x%02X", Loc::Get("$MyPlugin_Menu_HotkeyHint"), settings.toggleKeyScanCode);
 	}
 
 	const char* FrameworkName()

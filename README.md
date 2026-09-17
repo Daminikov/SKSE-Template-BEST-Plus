@@ -16,7 +16,7 @@ manager on every successful build.
 | Config | `include/Configuration.h`, `src/Configuration.cpp` | `Data\SKSE\Plugins\<PRODUCT_NAME>.ini`, created on first run |
 | Translations | `include/Localization.h`, `src/Localization.cpp`, `translations/*.txt`, `tools/make_translations.py` | Skyrim's own `Interface\Translations\<PRODUCT_NAME>_<language>.txt` format, live language switch |
 | Menu page | `include/Menu.h`, `src/Menu.cpp` | AMF-native probes + the public SMF consumer header for widgets |
-| Web view | `include/PrismaUI.h`, `src/PrismaUI.cpp`, `view/index.html` | soft dependency: no PrismaUI → plugin still works |
+| Web view | `include/PrismaUI.h`, `src/PrismaUI.cpp`, `view/index.html` | soft dependency: no PrismaUI → plugin still works; test window with options (`window.setOption` → INI → `window.applyOptions`) |
 | Hotkey | `include/InputSink.h`, `src/InputSink.cpp` | SKSE input sink, toggles the view (default scan code `0x3D` = F3) |
 | Vendored headers | `include/vendor/` | `PrismaUI_API.h`, `MenuFramework/SKSEMenuFramework.h`, `AMF/API.h` |
 
@@ -76,6 +76,20 @@ Three helpers, all run from the template root:
 | `python tools/make_translations.py` | (re)writes the languages defined in the script |
 | `python tools/new_language.py german` | creates a new-language stub: every english key, english text, ready to translate |
 | `python tools/check_translations.py` | validates format (BOM/UTF-16/CRLF/TAB), missing & extra keys, empty values, untranslated count, smuggled `%` conversions; exit code 1 on problems |
+| `python tools/check_view_keys.py` | cross-checks keys between code, the HTML view and `english.txt`, and enforces the key convention |
+| `node tools/test_view_i18n.mjs russian` | runs the view's own script against a stub DOM with the real translation file: asserts the texts actually land on screen and the options round-trip works |
+
+### Key convention: `$<Mod>_<Surface>_<Element>`
+
+| Prefix | Surface | Drawn by |
+|---|---|---|
+| `$MyPlugin_Menu_*` | the settings page | the menu framework (ImGui) |
+| `$MyPlugin_View_*` | the web view | HTML/JS (PrismaUI) |
+| `$MyPlugin_Notice_*` | in-game notifications | `RE::SendHUDMessage` |
+
+One string belongs to exactly one surface; if both need the same wording, they get two keys with the
+same text — cheaper for a translator than guessing where a shared string will fit. Surfaces are
+separated by blank lines in the file (`make_translations.py` does it for you).
 
 `translations/README.md` is the page a translator gets: what to change, what never to touch, how to
 test it in game.

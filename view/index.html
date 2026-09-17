@@ -11,7 +11,7 @@
 
         .panel {
             display: inline-block;
-            min-width: 340px;
+            min-width: 360px;
             padding: 14px 16px;
             color: #e8e2d4;
             background: rgba(18, 16, 14, 0.92);
@@ -20,8 +20,10 @@
         }
 
         h1 { font-size: 15px; margin: 0 0 10px; letter-spacing: .04em; color: #d8bd7a; }
+        h2 { font-size: 13px; margin: 0 0 2px; color: #d8bd7a; opacity: .9; }
 
         .row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+        .row label { flex: 1; }
 
         input[type="text"] {
             flex: 1;
@@ -31,6 +33,9 @@
             border: 1px solid rgba(190, 160, 90, 0.4);
             border-radius: 4px;
         }
+
+        input[type="range"] { width: 140px; }
+        input[type="checkbox"] { accent-color: #d8bd7a; }
 
         button {
             padding: 5px 12px;
@@ -43,8 +48,14 @@
 
         button:hover { background: #ecd39a; }
 
+        hr { border: 0; border-top: 1px solid rgba(190, 160, 90, 0.25); margin: 12px 0 0; }
+
         #status { font-size: 12px; opacity: .75; margin-top: 10px; }
         #result { color: #9fd07a; font-size: 12px; min-height: 16px; }
+        #volume-value { width: 34px; text-align: right; opacity: .8; }
+
+        #saved { float: right; color: #9fd07a; font-size: 11px; opacity: 0; transition: opacity .2s; }
+        #saved.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -54,19 +65,41 @@
         <div class="row">
             <input id="data-input" type="text" data-i18n-placeholder="$MyPlugin_View_Placeholder"
                    placeholder="type something for the plugin log..." />
-            <button data-i18n="$MyPlugin_View_Send" onclick="sendInputData()">Send to plugin</button>
+            <button data-i18n="$MyPlugin_View_Send" onclick="sendInputData()">Send to the plugin</button>
+        </div>
+        <div id="result"></div>
+
+        <hr />
+        <h2><span data-i18n="$MyPlugin_View_Options">Options</span>
+            <span id="saved" data-i18n="$MyPlugin_View_Saved">saved</span>
+        </h2>
+
+        <div class="row">
+            <label for="opt-hud" data-i18n="$MyPlugin_View_Option_Hud">Show the test HUD widget</label>
+            <input id="opt-hud" type="checkbox" onchange="sendOption('hud', this.checked)" />
         </div>
 
-        <div id="result"></div>
+        <div class="row">
+            <label for="opt-sound" data-i18n="$MyPlugin_View_Option_Sound">Enable sound</label>
+            <input id="opt-sound" type="checkbox" onchange="sendOption('sound', this.checked)" />
+        </div>
+
+        <div class="row">
+            <label for="opt-volume" data-i18n="$MyPlugin_View_Option_Volume">Volume</label>
+            <input id="opt-volume" type="range" min="0" max="100" value="50" oninput="onVolumeInput(this.value)" />
+            <span id="volume-value">50</span>
+        </div>
+
         <div id="status" data-i18n="$MyPlugin_View_Waiting">waiting for the plugin...</div>
     </div>
 
     <script>
-        // C++ pushes the whole translation table here on view-ready and on every language
-        // change: InteropCall(view, "applyTranslations", Loc::Json()).
-        // Keys look like "$MyPlugin_View_Send"; anything carrying [data-i18n] is filled in.
+        // ---------------------------------------------------------------- translations
+        // C++ pushes the whole table on view-ready and on every language change:
+        // InteropCall(view, "applyTranslations", Loc::Json()).
+        let strings = {};
+
         window.applyTranslations = (json) => {
-            let strings = {};
             try {
                 strings = JSON.parse(json);
             } catch (e) {
@@ -74,17 +107,55 @@
                 return;
             }
 
+            const text = (key, fallback) => strings[key] || fallback;
+
             document.querySelectorAll('[data-i18n]').forEach((element) => {
-                const key = element.getAttribute('data-i18n');
-                if (strings[key]) element.textContent = strings[key];
+                element.textContent = text(element.getAttribute('data-i18n'), element.textContent);
             });
             document.querySelectorAll('[data-i18n-placeholder]').forEach((element) => {
                 const key = element.getAttribute('data-i18n-placeholder');
-                if (strings[key]) element.setAttribute('placeholder', strings[key]);
+                element.setAttribute('placeholder', text(key, element.getAttribute('placeholder')));
             });
         };
 
-        // Called from C++ (Prisma::Interop / InteropCall) with a plain string.
+        // ---------------------------------------------------------------- options
+        // C++ answers every change with the authoritative state ("applyOptions"), so the UI
+        // always ends up showing what actually landed in the INI.
+        let applying = false;
+
+        window.applyOptions = (json) => {
+            let options = {};
+            try {
+                options = JSON.parse(json);
+            } catch (e) {
+                console.error('applyOptions: bad JSON', e);
+                return;
+            }
+
+            applying = true;
+            document.querySelector('#opt-hud').checked = !!options.hud;
+            document.querySelector('#opt-sound').checked = !!options.sound;
+            const percent = Math.round((options.volume ?? 0.5) * 100);
+            document.querySelector('#opt-volume').value = percent;
+            document.querySelector('#volume-value').textContent = percent;
+            applying = false;
+
+            const saved = document.querySelector('#saved');
+            saved.classList.add('show');
+            setTimeout(() => saved.classList.remove('show'), 1200);
+        };
+
+        function sendOption(name, value) {
+            if (applying) return;                 // ignore the echo of our own update
+            window.setOption(name + '=' + value); // RegisterJSListener(view, "setOption", ...)
+        }
+
+        function onVolumeInput(value) {
+            document.querySelector('#volume-value').textContent = value;
+            sendOption('volume', (value / 100).toFixed(2));
+        }
+
+        // ---------------------------------------------------------------- free-form line
         window.updateStatus = (data) => {
             document.querySelector('#status').textContent = data;
         };
@@ -93,7 +164,7 @@
             const value = document.querySelector('#data-input').value;
             document.querySelector('#result').textContent = value;
 
-            // The name must match RegisterJSListener(view, "sendDataToSKSE", ...) in PrismaUI.cpp
+            // must match RegisterJSListener(view, "sendDataToSKSE", ...) in PrismaUI.cpp
             window.sendDataToSKSE(value);
         }
     </script>

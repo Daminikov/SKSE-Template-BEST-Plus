@@ -7,6 +7,7 @@
 //  uses std::uint16_t / std::array / std::less / std::strong_ordering and "sv"
 //  literals without including anything itself. This PCH is what feeds them.
 // ------------------------------------------------------------------------------
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <compare>
@@ -17,6 +18,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
