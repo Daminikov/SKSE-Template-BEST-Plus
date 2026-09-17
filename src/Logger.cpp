@@ -1,5 +1,7 @@
 #include "PCH.h"
 
+#include <spdlog/sinks/rotating_file_sink.h>
+
 #include "Logger.h"
 
 namespace Log
@@ -11,8 +13,10 @@ namespace Log
 			return;
 		}
 
+		// Rotating instead of truncating: the previous log survives the next launch, which matters
+		// when the interesting lines came from the run before the one that just crashed.
 		const auto path = *dir / (PRODUCT_NAME ".log");
-		auto       sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path.string(), true);
+		auto       sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(path.string(), 2 * 1024 * 1024, 3);
 		auto       log = std::make_shared<spdlog::logger>("global log"s, std::move(sink));
 
 		log->set_level(spdlog::level::info);

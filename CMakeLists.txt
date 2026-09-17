@@ -103,6 +103,17 @@ if(PLUGIN_AUTO_DEPLOY AND DEFINED ENV{SKYRIM_MODS_FOLDER})
                     "${TRANSLATION_FILE}" "${MOD_DIR}/Interface/Translations/${PRODUCT_NAME}_${LANGUAGE}.txt"
             VERBATIM)
     endforeach()
+
+    # assets/cursor.png -> <mod>/PrismaUI/misc/cursor.png
+    # PrismaUI paints this texture instead of the game's cursor while input capture is active, and it
+    # reads it from that fixed path; a file with higher mod priority overrides the framework's own.
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/cursor.png")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${MOD_DIR}/PrismaUI/misc"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${CMAKE_CURRENT_SOURCE_DIR}/assets/cursor.png" "${MOD_DIR}/PrismaUI/misc/cursor.png"
+            VERBATIM)
+    endif()
 elseif(PLUGIN_AUTO_DEPLOY)
     message(STATUS "Deploy skipped: SKYRIM_MODS_FOLDER is not set")
 endif()
