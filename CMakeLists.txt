@@ -77,43 +77,49 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 if(PLUGIN_AUTO_DEPLOY AND DEFINED ENV{SKYRIM_MODS_FOLDER})
     set(MOD_DIR "$ENV{SKYRIM_MODS_FOLDER}/${PRODUCT_NAME}")
     message(STATUS "Deploy: ${MOD_DIR}")
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    # Everything below is one always-run target instead of POST_BUILD commands: POST_BUILD only fires
+    # when the DLL is relinked, so editing a translation, a view or the cursor and rebuilding did
+    # nothing ("ninja: no work to do") until some C++ file happened to change.
+    set(DEPLOY_COMMANDS
         COMMAND ${CMAKE_COMMAND} -E make_directory "${MOD_DIR}/SKSE/Plugins"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "$<TARGET_FILE:${PROJECT_NAME}>" "${MOD_DIR}/SKSE/Plugins/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${MOD_DIR}/PrismaUI/views/${PRODUCT_NAME}"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${CMAKE_CURRENT_SOURCE_DIR}/view" "${MOD_DIR}/PrismaUI/views/${PRODUCT_NAME}"
-        VERBATIM)
+                "${CMAKE_CURRENT_SOURCE_DIR}/view" "${MOD_DIR}/PrismaUI/views/${PRODUCT_NAME}")
+
     if(CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        list(APPEND DEPLOY_COMMANDS
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "$<TARGET_PDB_FILE:${PROJECT_NAME}>" "${MOD_DIR}/SKSE/Plugins/$<TARGET_PDB_FILE_NAME:${PROJECT_NAME}>"
-            VERBATIM)
+                    "$<TARGET_PDB_FILE:${PROJECT_NAME}>" "${MOD_DIR}/SKSE/Plugins/$<TARGET_PDB_FILE_NAME:${PROJECT_NAME}>")
     endif()
 
     # translations/*.txt -> <mod>/Interface/Translations/<PRODUCT_NAME>_<language>.txt
     # (Skyrim's own interface-translation format: UTF-16 LE, "$Key<TAB>text")
     file(GLOB TRANSLATION_FILES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/translations/*.txt")
+    list(APPEND DEPLOY_COMMANDS COMMAND ${CMAKE_COMMAND} -E make_directory "${MOD_DIR}/Interface/Translations")
     foreach(TRANSLATION_FILE IN LISTS TRANSLATION_FILES)
         get_filename_component(LANGUAGE "${TRANSLATION_FILE}" NAME_WE)
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory "${MOD_DIR}/Interface/Translations"
+        list(APPEND DEPLOY_COMMANDS
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "${TRANSLATION_FILE}" "${MOD_DIR}/Interface/Translations/${PRODUCT_NAME}_${LANGUAGE}.txt"
-            VERBATIM)
+                    "${TRANSLATION_FILE}" "${MOD_DIR}/Interface/Translations/${PRODUCT_NAME}_${LANGUAGE}.txt")
     endforeach()
 
     # assets/cursor.png -> <mod>/PrismaUI/misc/cursor.png
     # PrismaUI paints this texture instead of the game's cursor while input capture is active, and it
     # reads it from that fixed path; a file with higher mod priority overrides the framework's own.
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/cursor.png")
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        list(APPEND DEPLOY_COMMANDS
             COMMAND ${CMAKE_COMMAND} -E make_directory "${MOD_DIR}/PrismaUI/misc"
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    "${CMAKE_CURRENT_SOURCE_DIR}/assets/cursor.png" "${MOD_DIR}/PrismaUI/misc/cursor.png"
-            VERBATIM)
+                    "${CMAKE_CURRENT_SOURCE_DIR}/assets/cursor.png" "${MOD_DIR}/PrismaUI/misc/cursor.png")
     endif()
+
+    add_custom_target(${PRODUCT_NAME}_deploy ALL
+        ${DEPLOY_COMMANDS}
+        DEPENDS ${PROJECT_NAME}
+        COMMENT "Deploying ${PRODUCT_NAME} into ${MOD_DIR}"
+        VERBATIM)
 elseif(PLUGIN_AUTO_DEPLOY)
     message(STATUS "Deploy skipped: SKYRIM_MODS_FOLDER is not set")
 endif()
