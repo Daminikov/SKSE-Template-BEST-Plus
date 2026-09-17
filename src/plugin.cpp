@@ -67,6 +67,13 @@ namespace
 			}
 			break;
 		}
+		case SKSE::MessagingInterface::kPostLoadGame:
+			// a save is in memory now: the engine demo finally shows real player data
+			// instead of the pre-load default position
+			if (Config::Get().logDebug) {
+				LogEngineUtilities();
+			}
+			break;
 		default:
 			break;
 		}

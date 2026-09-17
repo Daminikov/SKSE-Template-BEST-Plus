@@ -67,11 +67,13 @@ namespace Config
 		}
 
 		std::string text;
+		bool        upgraded = false;
 		if (g_ini.GetString(kSection, kToggleKey, text)) {
 			g_settings.toggleKey = text;
 		} else if (std::int32_t legacy{}; g_ini.GetInt(kSection, "iToggleKeyScanCode", legacy)) {
 			// pre-SimpleIni installs stored the code as a number - keep them working
 			g_settings.toggleKey = std::to_string(legacy);
+			upgraded = true;
 		}
 
 		std::int32_t number{};
@@ -85,6 +87,12 @@ namespace Config
 		logger::info("configuration loaded: {} (menu {}, prismaUI {}, key '{}', hud {}, sound {}, volume {:.2f})",
 			kIniPath, g_settings.enableMenuPage, g_settings.enablePrismaUI, g_settings.toggleKey,
 			g_settings.showHudElement, g_settings.enableSound, g_settings.volume);
+
+		// an old-format file is rewritten once, so it stops carrying the retired numeric key
+		if (upgraded) {
+			Save();
+			logger::info("configuration upgraded to the current key format (sToggleKey)");
+		}
 	}
 
 	void Save()
