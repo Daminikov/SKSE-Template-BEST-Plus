@@ -1,0 +1,8 @@
+build/
+install/
+.vs/
+.vscode/
+*.user
+*.suo
+compile_commands.json
+*.log

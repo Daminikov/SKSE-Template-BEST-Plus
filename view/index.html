@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{MOD}}</title>
+    <style>
+        * { user-select: none; font-family: 'Segoe UI', sans-serif; }
+
+        body { margin: 0; }
+
+        .panel {
+            display: inline-block;
+            min-width: 320px;
+            padding: 14px 16px;
+            color: #e8e2d4;
+            background: rgba(18, 16, 14, 0.92);
+            border: 1px solid rgba(190, 160, 90, 0.55);
+            border-radius: 6px;
+        }
+
+        h1 { font-size: 15px; margin: 0 0 10px; letter-spacing: .04em; color: #d8bd7a; }
+
+        .row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 5px 7px;
+            color: #e8e2d4;
+            background: rgba(0, 0, 0, .45);
+            border: 1px solid rgba(190, 160, 90, 0.4);
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 5px 12px;
+            color: #12100e;
+            background: #d8bd7a;
+            border: 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover { background: #ecd39a; }
+
+        #status { font-size: 12px; opacity: .75; margin-top: 10px; }
+        #result { color: #9fd07a; font-size: 12px; min-height: 16px; }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <h1>{{MOD}} — web view</h1>
+
+        <div class="row">
+            <input id="data-input" type="text" placeholder="type something for the plugin log..." />
+            <button onclick="sendInputData()">Send to plugin</button>
+        </div>
+
+        <div id="result"></div>
+        <div id="status">waiting for the plugin...</div>
+    </div>
+
+    <script>
+        // Called from C++ (Prisma::Interop / InteropCall) with a string argument.
+        window.updateStatus = (data) => {
+            document.querySelector('#status').textContent = data;
+        };
+
+        // Same, but the plugin asks for a value back through the JSCallback of Invoke().
+        function sendInputData() {
+            const value = document.querySelector('#data-input').value;
+            document.querySelector('#result').textContent = 'sent: ' + value;
+
+            // The name must match RegisterJSListener(view, "sendDataToSKSE", ...) in PrismaUI.cpp
+            window.sendDataToSKSE(value);
+        }
+    </script>
+</body>
+</html>
