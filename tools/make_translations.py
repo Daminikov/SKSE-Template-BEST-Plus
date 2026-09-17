@@ -19,6 +19,7 @@ ENTRIES = [
     ("Menu", "$MyPlugin_Menu_RegisterPage", "Register this settings page"),
     ("Menu", "$MyPlugin_Menu_DebugLogging", "Verbose logging"),
     ("Menu", "$MyPlugin_Menu_ExampleSlider", "Example slider"),
+    ("Menu", "$MyPlugin_Menu_PauseOnFocus", "Pause the game while the web view is open"),
     ("Menu", "$MyPlugin_Menu_Language", "Active language"),
     ("Menu", "$MyPlugin_Menu_HotkeyHint", "Web view toggle hotkey"),
 
@@ -43,6 +44,7 @@ TRANSLATIONS = {
         "$MyPlugin_Menu_RegisterPage": "Регистрировать эту страницу настроек",
         "$MyPlugin_Menu_DebugLogging": "Подробный лог",
         "$MyPlugin_Menu_ExampleSlider": "Пример слайдера",
+        "$MyPlugin_Menu_PauseOnFocus": "Ставить игру на паузу, пока открыто веб-окно",
         "$MyPlugin_Menu_Language": "Активный язык",
         "$MyPlugin_Menu_HotkeyHint": "Клавиша показа веб-окна",
 

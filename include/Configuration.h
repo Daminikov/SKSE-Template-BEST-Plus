@@ -21,6 +21,7 @@ namespace Config
 		bool  showHudElement = true;
 		bool  enableSound = false;
 		float volume = 0.50f;
+		bool  pauseGameOnFocus = false;   // pass true to PrismaUI's Focus(): the game pauses while open
 	};
 
 	void      Load();        // read the INI (creating it with defaults if missing)

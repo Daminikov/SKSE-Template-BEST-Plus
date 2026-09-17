@@ -10,7 +10,6 @@ namespace
 {
 	PRISMA_UI_API::IVPrismaUI1* g_api = nullptr;
 	PrismaView                  g_view = 0;
-	bool                        g_visible = false;
 
 	std::string OptionsJson()
 	{
@@ -42,7 +41,7 @@ namespace
 		logger::info("JS -> plugin: {}", a_argument ? a_argument : "(null)");
 	}
 
-	// window.setOption("hud", "1") / ("sound", "0") / ("volume", "0.42")
+	// window.setOption("hud=1") / ("sound=0") / ("volume=0.42")
 	void OnJsOption(const char* a_argument)
 	{
 		const std::string_view argument{ a_argument ? a_argument : "" };
@@ -105,7 +104,11 @@ namespace Prisma
 
 		g_api->RegisterJSListener(g_view, "sendDataToSKSE", &OnJsMessage);
 		g_api->RegisterJSListener(g_view, "setOption", &OnJsOption);
-		logger::info("PrismaUI view created (handle {})", g_view);
+
+		// PrismaUI creates views VISIBLE (isHidden = false), which is why an unpatched plugin has its
+		// window sitting on screen from the first frame. Start hidden; the hotkey opens it.
+		g_api->Hide(g_view);
+		logger::info("PrismaUI view created hidden (handle {})", g_view);
 		return true;
 	}
 
@@ -114,18 +117,26 @@ namespace Prisma
 		if (!g_api || !g_view) {
 			return false;
 		}
-		if (g_visible) {
+
+		// Ask PrismaUI instead of keeping our own flag: focus can change without us (alt-tab,
+		// another view, the framework's menu), and a stale flag makes the next press do the
+		// opposite of what the player sees on screen.
+		if (g_api->HasFocus(g_view)) {
 			g_api->Unfocus(g_view);
 			g_api->Hide(g_view);
-			g_visible = false;
-			logger::debug("PrismaUI view hidden");
-		} else if (g_api->Focus(g_view)) {
-			g_api->Show(g_view);
-			g_visible = true;
-			logger::debug("PrismaUI view shown");
-			SyncOptions();
+			logger::debug("PrismaUI view hidden (unfocused)");
+			return false;
 		}
-		return g_visible;
+
+		// ORDER MATTERS: Focus() refuses a hidden view ("Focus: View [id] is hidden, cannot focus"),
+		// so Show() has to come first. Both are queued operations and run in this order. Focus is
+		// also what captures the mouse (EnableInputCapture + the framework's FocusMenu).
+		g_api->Show(g_view);
+		const bool pause = Config::Get().pauseGameOnFocus;
+		const bool focused = g_api->Focus(g_view, pause);
+		logger::debug("PrismaUI view shown (focus granted: {}, game paused: {})", focused, pause);
+		SyncOptions();
+		return focused;
 	}
 
 	bool IsAvailable()

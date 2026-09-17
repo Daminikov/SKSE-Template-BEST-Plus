@@ -23,6 +23,7 @@ namespace
 	constexpr const char* kHud = "bShowHudElement";
 	constexpr const char* kSound = "bEnableSound";
 	constexpr const char* kVolume = "iVolumePercent";
+	constexpr const char* kPauseOnFocus = "bPauseGameOnFocus";
 
 	template <class T>
 	T Or(const std::optional<T>& a_value, T a_default)
@@ -64,6 +65,9 @@ namespace Config
 		}
 		if (g_ini.GetBool(kSection, kSound, value)) {
 			g_settings.enableSound = value;
+		}
+		if (g_ini.GetBool(kSection, kPauseOnFocus, value)) {
+			g_settings.pauseGameOnFocus = value;
 		}
 
 		std::string text;
@@ -107,6 +111,7 @@ namespace Config
 		g_ini.SetInt(kSection, kSlider, static_cast<std::int32_t>(g_settings.exampleSlider * 100.0f));
 		g_ini.SetBool(kSection, kHud, g_settings.showHudElement);
 		g_ini.SetBool(kSection, kSound, g_settings.enableSound);
+		g_ini.SetBool(kSection, kPauseOnFocus, g_settings.pauseGameOnFocus);
 		g_ini.SetInt(kSection, kVolume, static_cast<std::int32_t>(g_settings.volume * 100.0f));
 
 		if (!g_ini.Save()) {

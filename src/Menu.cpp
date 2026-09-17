@@ -127,6 +127,9 @@ namespace Menu
 		if (ImGuiMCP::SliderFloat(Loc::Get("$MyPlugin_Menu_ExampleSlider"), &settings.exampleSlider, 0.0f, 1.0f)) {
 			Config::Save();
 		}
+		if (ImGuiMCP::Checkbox(Loc::Get("$MyPlugin_Menu_PauseOnFocus"), &settings.pauseGameOnFocus)) {
+			Config::Save();
+		}
 
 		ImGuiMCP::Separator();
 		ImGuiMCP::TextDisabled("%s: %s", Loc::Get("$MyPlugin_Menu_Language"), Loc::Language());

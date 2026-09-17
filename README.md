@@ -125,6 +125,10 @@ Prisma::Interop("applyTranslations", Loc::Json());   // push the table into the 
 - **AMF is not SMF.** AMF is an original framework (Dear ImGui inside) that answers the stock
   `SKSEMenuFramework` module/file probes. Vendor the public SMF consumer header — it works against
   AMF unchanged — and reach for `AMF_*` exports (`include/vendor/AMF/API.h`) for the extras.
+- **PrismaUI: `CreateView` gives you a visible view, and `Focus` refuses a hidden one.** So call `Hide()`
+  right after creating it (otherwise the window is on screen from the first frame), and when opening use
+  `Show()` *then* `Focus()` — focus is what captures the mouse. Read the state from `HasFocus()`, not from
+  your own flag: the framework changes focus behind your back and a stale flag inverts the toggle.
 - **PrismaUI view paths are relative to `Data`**: `CreateView("<PRODUCT_NAME>/index.html")` resolves to
   `Data\PrismaUI\views\<PRODUCT_NAME>\index.html`, which is exactly what the build copies.
 - **Lib licence**: CommonLibSSE-NG v8 is GPL-3.0 **with the Modding Exception** (linking your own mod
